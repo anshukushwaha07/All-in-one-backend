@@ -1,0 +1,6 @@
+/vs.code
+/node_moudules
+./dist
+
+*.env
+.env
