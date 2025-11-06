@@ -19,8 +19,8 @@ import { ApiResponse } from "../utils/apiResponse.js";
     if([fullname,email,username,password].some((field)=>field?.trim()==="")){
       throw new ApiError(400,"All filed are required")
     }
-    const existedUser= User.findOne({
-      $or:[{username},{password}]
+    const existedUser = await User.findOne({
+      $or:[{username},{email}]
     })
 
     if(existedUser){
@@ -28,14 +28,18 @@ import { ApiResponse } from "../utils/apiResponse.js";
     }
 
    const avatarLocalPath = req.files?.avatar[0]?.path;
-   const coverImageLocalPath = req.files?.coverImage[0]?.path;
+   const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
    if(!avatarLocalPath){
     throw new ApiError(400,"Avatar file is required");
    }
 
-   const avatar = await uploadOnCloudinary(avatarLocalPath);
-   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  //  const avatar = await uploadOnCloudinary(avatarLocalPath);
+  //  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+const coverImage = coverImageLocalPath
+  ? await uploadOnCloudinary(coverImageLocalPath) // Only upload if path exists
+  : null;
    if(!avatar){
     throw new ApiError(400,"Avatar file is required");
    }
