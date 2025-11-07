@@ -255,7 +255,39 @@ export const generateAccessTokenAndRefreshTokens = async (userId) => {
       .status(200)
       .json(200,req.user,"Current user fetched successfully");
   })
+  
+  const updateAccountDetails = asyncHandler(async(req,res)=>{
+      //1. get user details from body and files 
+      //2. validate them
+      //3. get user from db 
+      //4. update the fields 
+      //5. save the user object 
+      //6. return response
+     const {fullname,email} = req.body;
+     if(!fullname || !email){
+      throw new ApiError(400,"Fullname and email are required");
+     }
+     
+     const user = await User.findByIdAndUpdate(req.user?._id,
+      {
+        $set:{
+          fullname:fullname,
+          email:email
+        }
+      },
+      {
+        new:true,
+      }
+     ).select("-password");
+     
+     if(!user){    
+        throw new ApiError(404,"User not found");
+      }
 
- getCurrentUser;
+      return res
+      .status(200)
+      .json(new ApiResponse(200,user,"User details updated successfully"));
 
-export {registerUser,loginUser,loggoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser};
+  })
+
+export {registerUser,loginUser,loggoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails};
