@@ -4,20 +4,26 @@ import { User } from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/apiResponse.js";
 
- const generateAccessTokenAndRefreshTokens = async(userId)=>{
-    try{
-        const user = await User.findById(userId);
-        const accessToken = user.generateAccessToken();
-        const refreshToken = user.generateRefreshToken();
+export const generateAccessTokenAndRefreshTokens = async (userId) => {
+  try {
+    const user = await User.findById(userId);
 
-        user.refreshToken=refreshToken
-        await user.save({validateBeforeSave:false})
-
-        return {accessToken,refreshToken};
-    }catch(err){
-      throw new ApiError("Something went wrong while genrating refresh and access token")
+    if (!user) {
+      throw new ApiError(404, "User not found while generating tokens");
     }
- }
+
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    return { accessToken, refreshToken };
+  } catch (err) {
+    console.error("Token generation error:", err);
+    throw new ApiError(500, "Something went wrong while generating refresh and access token");
+  }
+}
  
  const registerUser = asyncHandler(async (req, res) => {
     //1. get  user details from frontend
@@ -92,13 +98,14 @@ import { ApiResponse } from "../utils/apiResponse.js";
 
       const {email,password,username}=req.body
 
-      if(!username || !email){
+      if(!(username || email)){
         throw new ApiError(400,"username or email is required")
       }
 
       const user = await User.findOne({
-        $or:[{username,email}]
-      })
+        $or: [{ username }, { email }]
+      });
+    
 
       if(!user){
           throw new ApiError(404,"User not exist");
@@ -112,7 +119,7 @@ import { ApiResponse } from "../utils/apiResponse.js";
 
     const{accessToken,refreshToken}= await generateAccessTokenAndRefreshTokens(user._id);
 
-    const loggedInUser = User.findById(user._id).select("-password -refreshToken");
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
     const options = {
       httpOnly:true,
