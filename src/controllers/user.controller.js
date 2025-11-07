@@ -288,6 +288,47 @@ export const generateAccessTokenAndRefreshTokens = async (userId) => {
       .status(200)
       .json(new ApiResponse(200,user,"User details updated successfully"));
 
-  })
+  });
 
-export {registerUser,loginUser,loggoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails};
+const updateUserAvatar = asyncHandler(async(req,res)=>{
+    const avatarLocalPath = req.file?.path;
+    
+    if(!avatarLocalPath){
+      throw new ApiError(400,"Avatar file is required");
+    }
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+    if(!avatar){
+      throw new ApiError(500,"Something went wrong while uploading avatar");
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set:{
+          avatar:avatar.url
+        }
+      },
+      {
+        new:true,
+      }
+    ).select("-password");
+
+    if(!user){
+      throw new ApiError(404,"User not found");
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,user,"User avatar updated successfully"));
+});
+
+export {registerUser,
+        loginUser,
+        loggoutUser,
+        refreshAccessToken,
+        changeCurrentPassword,
+        getCurrentUser,
+        updateAccountDetails,
+        updateUserAvatar
+  };
