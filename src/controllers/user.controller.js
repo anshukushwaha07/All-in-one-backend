@@ -160,8 +160,8 @@ export const generateAccessTokenAndRefreshTokens = async (userId) => {
 
       return res
       .status(200)
-      .clearCookies("accessToken",options)
-      .clearCookies("refreshToken",options)
+      .clearCookie("accessToken",options)
+      .clearCookie("refreshToken",options)
       .json(new ApiResponse(200,{},"User logged Out"))
 
   })
