@@ -249,6 +249,13 @@ export const generateAccessTokenAndRefreshTokens = async (userId) => {
       .json(new ApiResponse(200,{},"Password changed successfully"));
   }) 
   
-  
 
-export {registerUser,loginUser,loggoutUser,refreshAccessToken,changeCurrentPassword};
+  const getCurrentUser = asyncHandler(async(req,res)=>{
+      return res
+      .status(200)
+      .json(200,req.user,"Current user fetched successfully");
+  })
+
+ getCurrentUser;
+
+export {registerUser,loginUser,loggoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser};
