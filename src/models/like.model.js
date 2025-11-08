@@ -3,7 +3,7 @@ import mongoose,{Schema} from "mongoose";
 const likesSchema = new Schema({
     comments:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Comments"
+        ref:"Comment"
     },
     video:{
         type:mongoose.Schema.Types.ObjectId,
@@ -19,3 +19,7 @@ const likesSchema = new Schema({
     }
 
 },{timestamps:true});
+
+const Like = mongoose.model("Like",likesSchema);
+
+export default Like;
