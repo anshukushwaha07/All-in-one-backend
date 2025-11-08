@@ -145,8 +145,8 @@ export const generateAccessTokenAndRefreshTokens = async (userId) => {
   const loggoutUser = asyncHandler(async(req,res)=>{
       User.findByIdAndUpdate(
         req.user._id,{
-          $set:{
-            refreshToken:undefined
+          $unset:{
+            refreshToken:1
           }
         },
         {
