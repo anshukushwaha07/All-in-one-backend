@@ -243,6 +243,47 @@ const getVideoById = asyncHandler(async (req, res) => {
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: update video details like title, description, thumbnail
+    //1. Validate videoId and input data (title, description, thumbnail)
+    //2. If thumbnail is provided, upload it to Cloudinary
+    //3. Update the Video document in the database with new details
+    //4. delete old thumbnail from cloudinary and Video document on cloudinary
+    //5. Return the updated video details in the response
+
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video id")
+    }
+
+    const { title, description, thumbnail } = req.body;
+    const updateData = {};
+
+    if (title) updateData.title = title;
+    if (description) updateData.description = description;
+
+    if (req.file) {
+        // Upload new thumbnail to Cloudinary
+        const thumbnailUpload = await uploadOnCloudinary(req.file.path);
+        if (!thumbnailUpload) {
+            throw new ApiError(500, "Error uploading thumbnail to Cloudinary");
+        }
+        updateData.thumbnail = thumbnailUpload.url;
+
+        // Optionally, delete old thumbnail from Cloudinary
+        const existingVideo = await Video.findById(videoId);
+        if (existingVideo && existingVideo.thumbnail) {
+            await deleteOnCloudinary(existingVideo.thumbnail);
+        }
+    }
+
+    const updatedVideo = await Video.findByIdAndUpdate(videoId, updateData, { new: true });
+    if (!updatedVideo) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedVideo, "Video updated successfully.")
+    );
+
+   
 
 })
 
