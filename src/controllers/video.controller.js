@@ -5,6 +5,7 @@ import {ApiError} from "../utils/apiError.js"
 import {ApiResponse} from "../utils/apiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import { promise } from "bcrypt/promises.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -128,7 +129,115 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: get video by id
+    // get video by id
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video id")
+    }
+
+   // Increment view count and add to user's watch history atomically
+    await promise.all([
+        Video.findByIdAndUpdate(videoId, {
+            $addToSet: { views: req.user._id }
+        }),User.findByIdAndUpdate(req.user._id,{
+            $addToSet: { watchHistory: videoId }
+        }),])
+
+        const  video = await Video.aggregate([
+            {
+                $match:{_id:new mongoose.Types.ObjectId(videoId)}
+ 
+            },
+            {
+                $lookup:{
+                    from:"users",
+                    localField:"owner",
+                    foreignField:"_id",
+                    as:"channel"
+                }
+            },
+            {
+                $lookup:{
+                    from:"comments",
+                    localField:"_id",
+                    foreignField:"video",
+                    as:"comments"
+                }
+            },
+            {
+                $lookup:{
+                    from:"likes",
+                    localField:"_id",
+                    foreignField:"video",
+                    as:"likes"
+                }
+            },
+            {
+                $lookup:{
+                    from:"subscriptions",
+                    localField: "owner",
+                    foreignField: "channel",
+                    as: "subscribers"
+                }
+            },{
+                $unwind:"$channel"
+            },{
+                $addFields:{
+                    likesCount: { $size: "$likes" },
+                    commentsCount: { $size: "$comments" },
+                     views: {
+                    $cond: {
+                        if: { $isArray: "$views" },
+                        then: { $size: "$views" },
+                        else: { $ifNull: ["$views", 0] }
+                    }
+                },
+                    "channel.subscribersCount": { $size: "$subscribers" },
+                    "channel.isSubscribed": {
+                    $cond: {
+                        if: { $in: [new mongoose.Types.ObjectId(req.user._id), "$subscribers.subscriber"] },
+                        then: true,
+                        else: false
+                    }
+                },
+                    isLikedByCurrentUser: {
+                        $in: [req.user._id, "$likes.user"]
+                    },
+                    isSubscribedByCurrentUser: {
+                        $in: [req.user._id, "$subscribers.subscriber"]
+                    },
+                    subscribersCount: { $size: "$subscribers" }
+                }
+            },{
+                $project:{
+                "channel._id": 1,
+                "channel.avatar": 1,
+                "channel.fullName": 1,
+                "channel.subscribersCount": 1,
+                "channel.username": 1,
+                "channel.isSubscribed": 1,
+
+                createdAt: 1,
+                description: 1,
+                duration: 1,
+                likesCount: 1,
+                commentsCount: 1,
+                views: 1,
+                isLikedByCurrentUser: 1,
+                isSubscribedByCurrentUser: 1,
+                subscribersCount: 1,    
+                title: 1,
+                videoFile: 1,
+                views: 1,
+                isPublished: 1
+                }
+            }
+            
+        ]);
+
+        return res.status(200).json(
+            new ApiResponse(200, video[0], "Video fetched successfully.")
+        );
+        
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
