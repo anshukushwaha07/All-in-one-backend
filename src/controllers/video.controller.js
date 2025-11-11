@@ -289,10 +289,44 @@ const updateVideo = asyncHandler(async (req, res) => {
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: delete video
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video id")
+    }
+
+    const video = await Video.findByIdAndDelete(videoId);
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    // Delete video file and thumbnail from Cloudinary
+    await Promise.all([
+        deleteOnCloudinary(video.videoFile),
+        deleteOnCloudinary(video.thumbnail)
+    ]);
+
+    return res.status(200).json(
+        new ApiResponse(200, null, "Video deleted successfully.")
+    );
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video id")
+    }
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    video.isPublished = !video.isPublished;
+    await video.save();
+
+    return res.status(200).json(
+        new ApiResponse(200, video, "Video publish status updated successfully.")
+    );
 })
 
 export {
